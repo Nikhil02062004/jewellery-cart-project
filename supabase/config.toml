@@ -1,0 +1,52 @@
+project_id = "eoyjklsppczudlvfnbrt"
+
+[functions.check-reel-milestones]
+verify_jwt = false
+
+[functions.auto-archive-reels]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.send-order-email]
+verify_jwt = false
+
+[functions.low-stock-alert]
+verify_jwt = false
+
+[functions.generate-invoice]
+verify_jwt = false
+
+[functions.send-reel-notification]
+verify_jwt = false
+
+[functions.publish-scheduled-reels]
+verify_jwt = false
+
+[functions.schedule-analytics-report]
+verify_jwt = false
+
+[functions.send-milestone-email]
+verify_jwt = false
+
+[functions.send-shipping-email]
+verify_jwt = false
+
+[functions.assign-chat-agent]
+verify_jwt = false
+
+[functions.send-cart-email]
+verify_jwt = false
+
+[functions.notify-new-message]
+verify_jwt = false
+
+[functions.chat-ai-response]
+verify_jwt = false
+
+[functions.send-satisfaction-alert]
+verify_jwt = false
+
+[functions.transfer-chat]
+verify_jwt = false
