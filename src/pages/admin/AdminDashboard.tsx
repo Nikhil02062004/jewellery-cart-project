@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Package, ShoppingBag, MessageSquare, Users, LogOut, Film, BarChart3, Headphones } from 'lucide-react';
+import { Package, ShoppingBag, MessageSquare, Users, LogOut, Film, BarChart3, Headphones, CheckCircle, XCircle, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,29 +10,29 @@ const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ products: 0, orders: 0, inquiries: 0, reels: 0 });
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     const checkAdmin = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-      
+      if (!session) { navigate('/auth'); return; }
+
       setUser(session.user);
-      
-      const { data: roles } = await supabase
-        .from('user_roles')
+
+      // ✅ Check role from profiles table (cast needed until supabase types are regenerated)
+      const { data: profile } = await (supabase as any)
+        .from('profiles')
         .select('role')
-        .eq('user_id', session.user.id);
-      
-      const hasAdminRole = roles?.some(r => r.role === 'admin');
+        .eq('id', session.user.id)
+        .single();
+
+      const hasAdminRole = profile?.role === 'admin';
       setIsAdmin(hasAdminRole || false);
-      
+
       if (!hasAdminRole) {
-        toast({ title: "Access Denied", description: "You don't have admin privileges.", variant: "destructive" });
+        toast({ title: 'Access Denied', description: "You don't have admin privileges.", variant: 'destructive' });
         navigate('/');
         return;
       }
@@ -42,7 +42,7 @@ const AdminDashboard = () => {
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('orders').select('id', { count: 'exact', head: true }),
         supabase.from('contact_inquiries').select('id', { count: 'exact', head: true }),
-        supabase.from('reels').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('reels').select('id', { count: 'exact', head: true }),
       ]);
 
       setStats({
@@ -51,7 +51,16 @@ const AdminDashboard = () => {
         inquiries: inquiriesRes.count || 0,
         reels: reelsRes.count || 0,
       });
-      
+
+      // Fetch pending admin requests
+      const { data: requests } = await (supabase as any)
+        .from('profiles')
+        .select('id, email, name, created_at')
+        .eq('requested_admin', true)
+        .eq('role', 'user')
+        .order('created_at', { ascending: false });
+
+      setPendingRequests(requests || []);
       setLoading(false);
     };
 
@@ -61,6 +70,32 @@ const AdminDashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
+  };
+
+  const approveAdminRequest = async (userId: string) => {
+    const { error } = await (supabase as any)
+      .from('profiles')
+      .update({ role: 'admin', requested_admin: false })
+      .eq('id', userId);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setPendingRequests(prev => prev.filter((r: any) => r.id !== userId));
+      toast({ title: 'Admin Access Granted', description: 'User is now an admin.' });
+    }
+  };
+
+  const rejectAdminRequest = async (userId: string) => {
+    const { error } = await (supabase as any)
+      .from('profiles')
+      .update({ requested_admin: false })
+      .eq('id', userId);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setPendingRequests(prev => prev.filter((r: any) => r.id !== userId));
+      toast({ title: 'Request Rejected' });
+    }
   };
 
   if (loading) {
@@ -179,6 +214,50 @@ const AdminDashboard = () => {
               <p className="font-body text-muted-foreground">Contact Inquiries</p>
             </div>
           </div>
+
+          {/* Pending Admin Requests */}
+          {pendingRequests.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <UserCheck className="w-5 h-5 text-amber-600" />
+                <h3 className="font-display text-lg text-amber-800">
+                  Pending Admin Requests ({pendingRequests.length})
+                </h3>
+              </div>
+              <div className="space-y-3">
+                {pendingRequests.map(req => (
+                  <div key={req.id} className="flex items-center justify-between bg-white border border-amber-100 rounded-lg p-4">
+                    <div>
+                      <p className="font-medium text-sm">{req.name || 'Unknown'}</p>
+                      <p className="text-xs text-muted-foreground">{req.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Requested {new Date(req.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 gap-1"
+                        onClick={() => approveAdminRequest(req.id)}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-300 text-red-600 hover:bg-red-50 gap-1"
+                        onClick={() => rejectAdminRequest(req.id)}
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-6">
             <Link to="/admin/orders" className="block">

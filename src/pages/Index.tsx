@@ -1,14 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles, Shield, Truck, Award, Loader2 } from "lucide-react";
-import { Layout } from "@/components/layout/Layout";
-import { Button } from "@/components/ui/button";
-import { ProductCard } from "@/components/products/ProductCard";
-import { useProducts } from "@/hooks/useProducts";
-import { ShopByGender } from "@/components/home/ShopByGender";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import heroImage from "@/assets/hero-jewelry.jpg";
+import { Link } from 'react-router-dom';
+import { ArrowRight, Sparkles, Shield, Truck, Award, Loader2 } from 'lucide-react';
+import { Layout } from '@/components/layout/Layout';
+import { Button } from '@/components/ui/button';
+import { ProductCard } from '@/components/products/ProductCard';
+import { useProducts } from '@/hooks/useProducts';
+import { ShopByGender } from '@/components/home/ShopByGender';
+import heroImage from '@/assets/hero-jewelry.jpg';
 
 const categories = [
   {
@@ -41,37 +38,6 @@ const features = [
 const Index = () => {
   const { products, loading } = useProducts();
   const featuredProducts = products.slice(0, 4);
-
-  // 🔹 Newsletter state
-  const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const { toast } = useToast();
-
-  const handleSubscribe = async () => {
-    if (!email) {
-      toast({ title: "Please enter an email", variant: "destructive" });
-      return;
-    }
-
-    setSubmitting(true);
-
-    const { error } = await supabase
-      .from("newsletter_subscribers")
-      .insert({ email });
-
-    setSubmitting(false);
-
-    if (error) {
-      if (error.code === "23505") {
-        toast({ title: "You are already subscribed 🎉" });
-      } else {
-        toast({ title: "Something went wrong", variant: "destructive" });
-      }
-    } else {
-      toast({ title: "Subscribed successfully 🎉" });
-      setEmail("");
-    }
-  };
 
   return (
     <Layout>
@@ -245,7 +211,8 @@ const Index = () => {
                     rating: product.rating,
                     isNew: product.is_new,
                     description: product.description || undefined,
-                  }} 
+                    base_metal_rate_per_gram: (product as any).base_metal_rate_per_gram ?? null,
+                  }}
                 />
               ))}
             </div>
@@ -262,7 +229,7 @@ const Index = () => {
         </div>
       </section>
 
-      
+      {/* CTA */}
       <section className="py-24 bg-charcoal relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-96 h-96 bg-gold rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -279,16 +246,14 @@ const Index = () => {
             Subscribe to our newsletter and receive exclusive offers, new arrivals updates, and a special discount on your first purchase.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            className="flex-1 px-6 py-4 bg-transparent border border-white/30 text-white"
-          />
-          <Button variant="gold" size="lg" onClick={handleSubscribe} disabled={submitting}>
-            {submitting ? "SUBSCRIBING..." : "SUBSCRIBE"}
-          </Button>
+            <input 
+              type="email"
+              placeholder="Enter your email"
+              className="flex-1 px-6 py-4 bg-transparent border border-primary-foreground/30 rounded-sm text-primary-foreground placeholder:text-primary-foreground/50 font-body focus:outline-none focus:border-gold"
+            />
+            <Button variant="gold" size="lg">
+              Subscribe
+            </Button>
           </div>
         </div>
       </section>

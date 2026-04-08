@@ -177,6 +177,7 @@ const GoldPage = () => {
                           rating: product.rating,
                           isNew: product.is_new,
                           description: product.description || undefined,
+                          base_metal_rate_per_gram: (product as any).base_metal_rate_per_gram ?? null,
                         }}
                         viewOnly 
                       />

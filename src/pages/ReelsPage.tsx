@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronUp, ChevronDown, Loader2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Loader2, AlertCircle } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { ReelCard } from "@/components/reels/ReelCard";
-import { ReelUploadForm } from "@/components/reels/ReelUploadForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -16,8 +15,8 @@ interface Reel {
   product_id: string | null;
   user_id: string;
   created_at: string;
-  status: string;
-  is_featured: boolean;
+  status?: string;
+  is_featured?: boolean;
   product?: {
     id: string;
     name: string;
@@ -29,86 +28,45 @@ interface Reel {
 
 export default function ReelsPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const ADMIN_EMAIL = "2022ucp1720@mnit.ac.in";
-
-  const [isAdmin, setIsAdmin] = useState(false);
-
-useEffect(() => {
-  const checkUser = async () => {
-    const { data } = await supabase.auth.getUser();
-
-    if (data?.user?.email === ADMIN_EMAIL) {
-      setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
-    }
-  };
-
-  checkUser();
-}, []);
-
-  /* ---------- AUTH CHECK (PREVENT BLANK PAGE) ---------- */
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const resp = await supabase.auth.getSession();
-        if (!mounted) return;
-        setIsLoggedIn(!!resp.data?.session);
-      } catch (err) {
-        console.error("auth check error:", err);
-        if (mounted) setIsLoggedIn(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   /* ---------- FETCH REELS ---------- */
-  const { data: reels = [], isLoading, refetch } = useQuery({
-  queryKey: ["live-reels"],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from("reels")
-      .select(`
-        *,
-        product:products(id, name, price, image, category)
-      `)
-      .eq("status", "live")   // ✅ only public reels
-      .order("is_featured", { ascending: false })
-      .order("created_at", { ascending: false });
+  const { data: reels = [], isLoading, error } = useQuery({
+    queryKey: ["live-reels"],
+    queryFn: async () => {
+      // Try with status filter first; fall back to all reels if column missing
+      const { data, error } = await supabase
+        .from("reels")
+        .select(`*, product:products(id, name, price, image, category)`)
+        .or("status.eq.approved,status.eq.live")
+        .order("created_at", { ascending: false });
 
-    if (error) throw error;
-    return data;
-  },
-});
+      if (error) {
+        console.warn("Status filter failed, fetching all reels:", error.message);
+        const { data: fallback, error: fallbackErr } = await supabase
+          .from("reels")
+          .select(`*, product:products(id, name, price, image, category)`)
+          .order("created_at", { ascending: false });
+        if (fallbackErr) throw fallbackErr;
+        return (fallback ?? []) as Reel[];
+      }
+      return (data ?? []) as Reel[];
+    },
+  });
 
-  /* If reels length shrinks, clamp the index */
+  /* Clamp index on reels change */
   useEffect(() => {
-    if (reels.length === 0) {
-      setCurrentIndex(0);
-      return;
-    }
-    setCurrentIndex((idx) => {
-      if (idx >= reels.length) return reels.length - 1;
-      if (idx < 0) return 0;
-      return idx;
-    });
+    if (reels.length === 0) { setCurrentIndex(0); return; }
+    setCurrentIndex(i => Math.min(Math.max(i, 0), reels.length - 1));
   }, [reels.length]);
 
   /* ---------- NAVIGATION ---------- */
   const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => {
-      if (reels.length === 0) return 0;
-      return Math.min(prev + 1, reels.length - 1);
-    });
+    setCurrentIndex(prev => Math.min(prev + 1, reels.length - 1));
   }, [reels.length]);
 
   const goToPrev = useCallback(() => {
-    setCurrentIndex((prev) => Math.max(prev - 1, 0));
+    setCurrentIndex(prev => Math.max(prev - 1, 0));
   }, []);
 
   /* ---------- KEYBOARD ---------- */
@@ -121,120 +79,166 @@ useEffect(() => {
     return () => window.removeEventListener("keydown", handler);
   }, [goToNext, goToPrev]);
 
-  /* ---------- TOUCH / SCROLL (mobile + mouse wheel) ---------- */
+  /* ---------- WHEEL (desktop scroll) ---------- */
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let lastScroll = 0;
+    const THROTTLE_MS = 600;
+
+    const onWheel = (e: WheelEvent) => {
+      // If the event came from inside a comment panel, ignore
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-comments-panel]')) return;
+
+      e.preventDefault();
+      const now = Date.now();
+      if (now - lastScroll < THROTTLE_MS) return;
+      lastScroll = now;
+      e.deltaY > 0 ? goToNext() : goToPrev();
+    };
+
+    container.addEventListener("wheel", onWheel, { passive: false });
+    return () => container.removeEventListener("wheel", onWheel);
+  }, [goToNext, goToPrev]);
+
+  /* ---------- TOUCH ---------- */
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     let startY = 0;
-    const passiveOptions = { passive: false } as AddEventListenerOptions;
 
-    const touchStart = (e: TouchEvent) => {
+    const onTouchStart = (e: TouchEvent) => {
       startY = e.touches[0]?.clientY ?? 0;
     };
 
-    const touchEnd = (e: TouchEvent) => {
+    const onTouchEnd = (e: TouchEvent) => {
       const endY = e.changedTouches[0]?.clientY ?? 0;
       const diff = startY - endY;
-      if (Math.abs(diff) > 50) {
+      if (Math.abs(diff) > 60) {
         diff > 0 ? goToNext() : goToPrev();
       }
     };
 
-    const wheel = (e: WheelEvent) => {
-      // prevent default to avoid the page from scrolling while we're navigating reels
-      e.preventDefault();
-      e.deltaY > 0 ? goToNext() : goToPrev();
-    };
-
-    container.addEventListener("touchstart", touchStart);
-    container.addEventListener("touchend", touchEnd);
-    // wheel must be non-passive so e.preventDefault works
-    container.addEventListener("wheel", wheel, passiveOptions);
-
+    container.addEventListener("touchstart", onTouchStart);
+    container.addEventListener("touchend", onTouchEnd);
     return () => {
-      container.removeEventListener("touchstart", touchStart);
-      container.removeEventListener("touchend", touchEnd);
-      container.removeEventListener("wheel", wheel, passiveOptions);
+      container.removeEventListener("touchstart", onTouchStart);
+      container.removeEventListener("touchend", onTouchEnd);
     };
   }, [goToNext, goToPrev]);
 
-  /* ---------- LOADING ---------- */
+  /* ---------- STATES ---------- */
   if (isLoading) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-gold" />
+        <div className="min-h-screen flex items-center justify-center bg-black">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
         </div>
       </Layout>
     );
   }
 
-  /* ---------- EMPTY STATE ---------- */
+  if (error) {
+    return (
+      <Layout>
+        <section className="min-h-screen flex flex-col items-center justify-center bg-black text-white gap-4">
+          <AlertCircle className="w-12 h-12 text-red-400 opacity-70" />
+          <h1 className="font-display text-3xl">Jewelry Reels</h1>
+          <p className="text-white/50 text-sm">{(error as Error).message}</p>
+        </section>
+      </Layout>
+    );
+  }
+
   if (reels.length === 0) {
+    return (
+      <Layout>
+        <section className="min-h-screen flex flex-col items-center justify-center bg-black text-white gap-4">
+          <h1 className="font-display text-4xl">Jewelry Reels</h1>
+          <p className="text-white/50">No reels yet. Be the first to share!</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  /* ---------- MAIN FULLSCREEN VIEW ---------- */
   return (
     <Layout>
-      <section className="py-20 text-center">
-        <h1 className="font-display text-4xl mb-4">
-          Jewelry Reels
-        </h1>
+      {/* Full-screen black container */}
+      <div ref={containerRef} className="fixed inset-0 bg-black" style={{ paddingTop: '80px' }}>
 
-        <p className="text-muted-foreground mb-8">
-          No reels yet. Be the first to share!
-        </p>
+        {/* Reels stack — each reel is 100% height of the viewport minus header */}
+        <div
+          className="h-full transition-transform duration-300 ease-out will-change-transform"
+          style={{ transform: `translateY(-${currentIndex * 100}%)` }}
+          role="list"
+          aria-live="polite"
+          aria-label={`Reel ${currentIndex + 1} of ${reels.length}`}
+        >
+          {reels.map((reel, index) => {
+            // Only render current ± 1 for performance
+            const shouldRender = Math.abs(index - currentIndex) <= 1;
+            return (
+              <div
+                key={reel.id}
+                className="h-full flex items-center justify-center"
+                role="listitem"
+                aria-label={`Reel ${index + 1}`}
+              >
+                {shouldRender ? (
+                  // Center column: max 430px wide (phone portrait ratio)
+                  <div className="h-full w-full max-w-[430px] mx-auto relative">
+                    <ReelCard reel={reel} isActive={index === currentIndex} />
+                  </div>
+                ) : (
+                  // Placeholder to keep layout correct
+                  <div className="h-full w-full max-w-[430px] mx-auto bg-black" />
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-        {/* ✅ Only admin can see upload */}
-        {isAdmin && <ReelUploadForm onSuccess={refetch} />}
-      </section>
-    </Layout>
-  );
-}
-
-  /* ---------- MAIN VIEW ---------- */
-  return (
-    <Layout>
-      <div className="fixed inset-0 bg-black pt-20">
-        {/* Admin / authenticated uploader button */}
-        {isLoggedIn && (
-          <div className="absolute left-4 top-24 z-20">
-            <ReelUploadForm onSuccess={() => refetch()} />
-          </div>
-        )}
-
-        {/* next/prev controls */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-2">
+        {/* Navigation arrows (desktop) */}
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-2">
           <button
             onClick={goToPrev}
             disabled={currentIndex === 0}
             aria-label="Previous reel"
-            className="p-2 bg-white/20 rounded-full disabled:opacity-30"
+            className="p-2.5 bg-white/15 hover:bg-white/30 rounded-full disabled:opacity-20 transition-all text-white"
           >
-            <ChevronUp className="text-white" />
+            <ChevronUp className="w-5 h-5" />
           </button>
           <button
             onClick={goToNext}
             disabled={currentIndex === reels.length - 1}
             aria-label="Next reel"
-            className="p-2 bg-white/20 rounded-full disabled:opacity-30"
+            className="p-2.5 bg-white/15 hover:bg-white/30 rounded-full disabled:opacity-20 transition-all text-white"
           >
-            <ChevronDown className="text-white" />
+            <ChevronDown className="w-5 h-5" />
           </button>
         </div>
 
-        {/* scrolling container */}
-        <div ref={containerRef} className="h-full overflow-hidden">
-          <div
-            className="h-full transition-transform duration-300"
-            style={{ transform: `translateY(-${currentIndex * 100}%)` }}
-            role="list"
-            aria-live="polite"
-          >
-            {reels.map((reel, index) => (
-              <div key={reel.id} className="h-full max-w-md mx-auto" role="listitem">
-                <ReelCard reel={reel} isActive={index === currentIndex} />
-              </div>
-            ))}
-          </div>
+        {/* Reel counter */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-4 z-20 flex gap-1.5">
+          {reels.slice(0, 8).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentIndex(i)}
+              className={`rounded-full transition-all ${
+                i === currentIndex
+                  ? 'w-4 h-2 bg-amber-500'
+                  : 'w-2 h-2 bg-white/30 hover:bg-white/50'
+              }`}
+              aria-label={`Go to reel ${i + 1}`}
+            />
+          ))}
+          {reels.length > 8 && (
+            <span className="text-white/40 text-xs self-center ml-1">+{reels.length - 8}</span>
+          )}
         </div>
       </div>
     </Layout>

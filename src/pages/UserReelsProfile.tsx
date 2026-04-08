@@ -26,6 +26,7 @@ import { NotificationPreferences } from "@/components/reels/NotificationPreferen
 import { PeriodComparisonAnalytics } from "@/components/reels/PeriodComparisonAnalytics";
 import { RealtimeMilestoneAlerts } from "@/components/reels/RealtimeMilestoneAlerts";
 import { PushNotificationToggle } from "@/components/reels/PushNotificationToggle";
+import { ReelUploadForm } from "@/components/reels/ReelUploadForm";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -339,11 +340,11 @@ export default function UserReelsProfile() {
       
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
           <div>
             <h1 className="font-display text-4xl mb-2">My Reels</h1>
             <p className="text-muted-foreground">
-              Welcome back, {userName}! Here's an overview of your jewelry reels.
+              Welcome back, {userName}! Manage and upload your jewelry reels.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -376,12 +377,29 @@ export default function UserReelsProfile() {
                 engagementRate: stats.engagementRate,
               }}
             />
-            <Link to="/reels">
-              <Button className="gap-2">
-                <Film className="h-4 w-4" />
-                Upload New Reel
-              </Button>
-            </Link>
+          </div>
+        </div>
+
+        {/* ✅ PROMINENT UPLOAD SECTION - Always visible */}
+        <div className="mb-8 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
+                <Film className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold mb-1">Upload a New Reel</h2>
+                <p className="text-muted-foreground text-sm">
+                  Share a short jewelry video — it goes live immediately after upload.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Supports MP4, MOV, AVI · Max 100MB · Vertical format recommended
+                </p>
+              </div>
+            </div>
+            <div className="flex-shrink-0">
+              <ReelUploadForm onSuccess={() => queryClient.invalidateQueries({ queryKey: ["user-reels", userId] })} />
+            </div>
           </div>
         </div>
 
@@ -585,18 +603,22 @@ export default function UserReelsProfile() {
             return (
               <TabsContent key={tab} value={tab}>
                 {tabReels.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-16 text-muted-foreground">
                     {isArchivedTab ? (
-                      <Archive className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <Archive className="h-16 w-16 mx-auto mb-4 opacity-30" />
                     ) : (
-                      <Film className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <Film className="h-16 w-16 mx-auto mb-4 opacity-30" />
                     )}
-                    <p>No {isArchivedTab ? "archived " : ""}reels found{!isArchivedTab ? " in this category" : ""}.</p>
-                    {tab === "all" && (
-                      <Link to="/reels">
-                        <Button className="mt-4">Upload Your First Reel</Button>
-                      </Link>
-                    )}
+                    <p className="text-lg font-medium mb-2">
+                      {isArchivedTab ? "No archived reels" : tab === "all" ? "No reels uploaded yet" : `No ${tab} reels`}
+                    </p>
+                    <p className="text-sm">
+                      {tab === "all"
+                        ? "Use the upload section above to share your first jewelry reel!"
+                        : isArchivedTab
+                        ? "Archived reels will appear here."
+                        : "No reels with this status yet."}
+                    </p>
                   </div>
                 ) : (
                   <>

@@ -7,6 +7,7 @@ export interface CartItem {
   image: string;
   quantity: number;
   category: 'silver' | 'gold' | 'artificial';
+  base_metal_rate_per_gram?: number | null;
 }
 
 interface CartContextType {

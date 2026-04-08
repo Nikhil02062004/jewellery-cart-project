@@ -4,8 +4,8 @@ import { Menu, X, ShoppingBag, Search, Phone, ChevronDown, User } from 'lucide-r
 import { useCart } from '@/contexts/CartContext';
 import { SearchDialog } from './SearchDialog';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from '@/lib/utils';
+import { useAdminRole } from '@/hooks/useAdminRole';
 
 interface NavItem {
   name: string;
@@ -30,6 +30,7 @@ const navLinks: NavItem[] = [
       { name: 'Shopping Cart', path: '/cart' },
       { name: 'Checkout', path: '/checkout' },
       { name: 'Wishlist', path: '/wishlist' },
+      { name: 'My Reels', path: '/my-reels' },
       { name: 'Login & Register', path: '/auth' },
       { name: 'My Account', path: '/account' },
     ]
@@ -41,24 +42,9 @@ export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useAdminRole();   // ✅ DB-backed role check
   const { totalItems, setIsCartOpen } = useCart();
   const location = useLocation();
-
-  // ✅ ADMIN CHECK
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getUser();
-
-      if (data?.user?.email === "2022ucp1777@mnit.ac.in") {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
-    };
-
-    checkUser();
-  }, []);
 
 
   const handleDropdownEnter = (name: string) => {
@@ -253,7 +239,13 @@ export const Header = () => {
                       </button>
                       {link.children && openDropdown === link.name && (
                         <div className="pl-4 border-l border-gold/30 ml-2">
-                          {link.children.map((child) => (
+                          {link.children
+                            .filter((child) => {
+                              // hide My Reels for non-admins in mobile nav too
+                              if (child.name === "My Reels" && !isAdmin) return false;
+                              return true;
+                            })
+                            .map((child) => (
                             <Link
                               key={child.path}
                               to={child.path}

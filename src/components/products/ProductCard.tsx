@@ -17,6 +17,7 @@ export interface Product {
   rating: number;
   isNew?: boolean;
   description?: string;
+  base_metal_rate_per_gram?: number | null;
 }
 
 interface ProductCardProps {
@@ -40,6 +41,7 @@ export const ProductCard = ({ product, viewOnly = false }: ProductCardProps) => 
       price: product.price,
       image: product.image,
       category: product.category,
+      base_metal_rate_per_gram: product.base_metal_rate_per_gram,
     });
   };
 

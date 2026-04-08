@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, Heart, LogOut, Shield, Eye, RefreshCw, Download, Loader2 } from 'lucide-react';
+import { User, Package, Heart, LogOut, Shield, Eye, RefreshCw, Download, Loader2, Clock, CheckCircle } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,24 +38,14 @@ const AccountPage = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'orders'>('dashboard');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [requestedAdmin, setRequestedAdmin] = useState(false);
+  const [requestingAdmin, setRequestingAdmin] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { items: wishlistItems } = useWishlist();
 
-  useEffect(() => {
-  const checkUser = async () => {
-    const { data } = await supabase.auth.getUser();
-
-    if (data?.user?.email === "2022ucp1777@mnit.ac.in") {
-      setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
-    }
-  };
-
-  checkUser();
-}, []);
+  // Remove the old hardcoded checkUser block — handled by checkAdmin now
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -142,12 +132,43 @@ const AccountPage = () => {
   };
 
   const checkAdmin = async (userId: string) => {
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-    
-    setIsAdmin(roles?.some(r => r.role === 'admin') || false);
+    try {
+      const { data: profile, error } = await (supabase as any)
+        .from('profiles')
+        .select('role, requested_admin')
+        .eq('id', userId)
+        .single();
+      // Silently ignore if profiles table / columns not yet created in DB
+      if (error) { console.warn('Profiles not ready:', error.message); return; }
+      setIsAdmin(profile?.role === 'admin');
+      setRequestedAdmin(profile?.requested_admin ?? false);
+    } catch (err) {
+      console.warn('checkAdmin failed silently:', err);
+    }
+  };
+
+  const handleRequestAdmin = async () => {
+    if (!user) return;
+    setRequestingAdmin(true);
+    try {
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ requested_admin: true })
+        .eq('id', user.id);
+      if (error) throw error;
+      setRequestedAdmin(true);
+      toast({ title: 'Request Sent!', description: 'Your admin access request has been submitted. The admin will review it shortly.' });
+    } catch (err: any) {
+      // Show helpful message if DB not set up
+      const msg = err.message || '';
+      if (msg.includes('schema cache') || msg.includes('does not exist')) {
+        toast({ title: 'Setup Required', description: 'Please ask the site admin to run the database migration first.', variant: 'destructive' });
+      } else {
+        toast({ title: 'Error', description: msg, variant: 'destructive' });
+      }
+    } finally {
+      setRequestingAdmin(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -291,11 +312,25 @@ const AccountPage = () => {
                     <Heart className="w-4 h-4" />
                     Wishlist
                   </Link>
-                  {isAdmin && (
+                  {isAdmin ? (
                     <Link to="/admin" className="flex items-center gap-3 px-4 py-3 rounded-sm text-gold hover:bg-gold/10 font-body text-sm transition-colors">
                       <Shield className="w-4 h-4" />
                       Admin Dashboard
                     </Link>
+                  ) : requestedAdmin ? (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-sm text-muted-foreground font-body text-sm">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      <span>Admin Request Pending</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleRequestAdmin}
+                      disabled={requestingAdmin}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-sm text-muted-foreground hover:bg-muted font-body text-sm transition-colors disabled:opacity-50"
+                    >
+                      <Shield className="w-4 h-4" />
+                      {requestingAdmin ? 'Sending...' : 'Request Admin Access'}
+                    </button>
                   )}
                   <button
                     onClick={handleLogout}

@@ -109,7 +109,12 @@ const AdminChat = () => {
           schema: 'public',
           table: 'chat_conversations'
         },
-        () => {
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            toast.info('🔔 New Chat Request', {
+              description: 'A customer requires assistance in Live Chat.'
+            });
+          }
           fetchConversations();
         }
       )
@@ -326,9 +331,7 @@ const AdminChat = () => {
 
    return (
      <>
-       {/* Real-time notifications for new chats */}
-       <NewChatNotifications agentId={userId} isAvailable={isAvailable} />
-       
+       {/* Real-time notifications for new chats - handled by channel below */}
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="bg-background border-b sticky top-0 z-10">
@@ -349,7 +352,7 @@ const AdminChat = () => {
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-65px)]">
+      <div className="flex h-[calc(100vh-65px)] overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 bg-background border-r hidden lg:block">
           <nav className="p-4 space-y-2">
@@ -381,7 +384,7 @@ const AdminChat = () => {
         </aside>
 
         {/* Conversations List */}
-        <div className="w-80 border-r bg-background flex flex-col">
+        <div className="w-[300px] md:w-80 shrink-0 border-r bg-background flex flex-col overflow-hidden">
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold flex items-center gap-2">
@@ -393,12 +396,7 @@ const AdminChat = () => {
               </h2>
             </div>
           </div>
-          
-          {/* Chat Queue Manager */}
-          <div className="p-3 border-b">
-            <ChatQueueManager agentId={userId} onAssign={fetchConversations} />
-          </div>
-          
+          {/* Chat Queue Manager inside Conversations removed to prevent duplicate lists and save vertical space */}
           <ScrollArea className="flex-1">
             {conversations.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
@@ -462,7 +460,7 @@ const AdminChat = () => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col bg-background">
+        <div className="flex-1 flex flex-col bg-background min-w-0">
           {selectedConversation ? (
             <>
               {/* Chat Header */}
@@ -621,10 +619,6 @@ const AdminChat = () => {
             customerId={selectedConversation.customer_id}
             customerName={selectedConversation.customer_name}
             customerEmail={selectedConversation.customer_email}
-            conversationId={selectedConversation.id}
-            agentId={userId}
-            open={showCustomerDetails}
-            onOpenChange={setShowCustomerDetails}
           />
         )}
       </div>

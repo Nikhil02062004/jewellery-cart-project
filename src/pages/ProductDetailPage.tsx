@@ -71,6 +71,7 @@ const ProductDetailPage = () => {
         price: product.price,
         image: product.image,
         category: product.category as 'silver' | 'gold' | 'artificial',
+        base_metal_rate_per_gram: (product as any).base_metal_rate_per_gram ?? null,
       });
     }
   };
@@ -291,6 +292,7 @@ const ProductDetailPage = () => {
                       rating: item.rating ?? 5,
                       isNew: item.is_new ?? false,
                       description: item.description ?? undefined,
+                      base_metal_rate_per_gram: (item as any).base_metal_rate_per_gram ?? null,
                     }}
                     viewOnly={item.category === 'gold'}
                   />

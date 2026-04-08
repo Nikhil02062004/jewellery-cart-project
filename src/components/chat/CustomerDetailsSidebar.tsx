@@ -98,13 +98,13 @@ export const CustomerDetailsSidebar = ({ customerId, customerName, customerEmail
   };
   if (loading) {
     return (
-      <div className="w-72 border-l bg-background p-4 flex items-center justify-center">
+      <div className="w-64 lg:w-72 shrink-0 border-l bg-background p-4 flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     );
   }
   return (
-    <div className="w-72 border-l bg-background flex flex-col">
+    <div className="w-64 lg:w-72 shrink-0 border-l bg-background flex flex-col">
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-5">
           {/* Customer Info */}

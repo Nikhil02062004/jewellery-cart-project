@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Truck, Shield, Banknote } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, Shield, Banknote, RefreshCw } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,12 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { useMetalPrices, calculateAdjustedPrice } from '@/hooks/useMetalPrices';
+import { Badge } from '@/components/ui/badge';
 
 const CheckoutPage = () => {
   const { items, totalPrice, clearCart } = useCart();
+  const { rates, loading: ratesLoading } = useMetalPrices();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -37,10 +40,24 @@ const CheckoutPage = () => {
     });
   }, []);
 
+  const getAdjustedPrice = (item: typeof items[0]) => {
+    if (item.category === 'artificial' || !rates) return item.price;
+    const currentRate = item.category === 'gold' ? rates.gold.rate_per_gram_inr : rates.silver.rate_per_gram_inr;
+    return calculateAdjustedPrice(item.price, item.base_metal_rate_per_gram ?? null, currentRate);
+  };
+
+  const adjustedTotal = items.reduce((sum, item) => sum + getAdjustedPrice(item) * item.quantity, 0);
+
   const handleStripeCheckout = async () => {
     setLoading(true);
 
     try {
+      // Use adjusted prices for checkout
+      const adjustedItems = items.map(item => ({
+        ...item,
+        price: getAdjustedPrice(item),
+      }));
+
       const customerInfo = {
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
@@ -49,7 +66,7 @@ const CheckoutPage = () => {
       };
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { items, customerInfo },
+        body: { items: adjustedItems, customerInfo },
       });
 
       if (error) throw error;
@@ -74,13 +91,18 @@ const CheckoutPage = () => {
     setLoading(true);
 
     try {
+      const adjustedItems = items.map(item => ({
+        ...item,
+        price: getAdjustedPrice(item),
+      }));
+
       const orderData = {
         customer_name: `${formData.firstName} ${formData.lastName}`,
         customer_email: formData.email,
         customer_phone: formData.phone,
         customer_address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
-        items: JSON.parse(JSON.stringify(items)),
-        total_amount: totalPrice,
+        items: JSON.parse(JSON.stringify(adjustedItems)),
+        total_amount: adjustedTotal,
         notes: formData.notes || null,
         user_id: userId,
         status: 'pending',
@@ -96,12 +118,12 @@ const CheckoutPage = () => {
           orderId: order.id,
           customerName: orderData.customer_name,
           customerEmail: orderData.customer_email,
-          items: items.map(item => ({
+          items: adjustedItems.map(item => ({
             name: item.name,
             quantity: item.quantity,
             price: item.price,
           })),
-          totalAmount: totalPrice,
+          totalAmount: adjustedTotal,
           shippingAddress: orderData.customer_address,
         },
       });
@@ -311,25 +333,37 @@ const CheckoutPage = () => {
                   <h2 className="font-display text-2xl mb-6">Order Summary</h2>
                   
                   <div className="space-y-4 pb-6 border-b border-border max-h-[300px] overflow-y-auto">
-                    {items.map((item) => (
-                      <div key={item.id} className="flex gap-3">
-                        <div className="w-16 h-16 bg-muted rounded overflow-hidden shrink-0">
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    {items.map((item) => {
+                      const adjPrice = getAdjustedPrice(item);
+                      return (
+                        <div key={item.id} className="flex gap-3">
+                          <div className="w-16 h-16 bg-muted rounded overflow-hidden shrink-0">
+                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-body text-sm truncate">{item.name}</h4>
+                            <p className="font-body text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                            <p className="font-body text-sm text-gold">₹{(adjPrice * item.quantity).toLocaleString()}</p>
+                            {adjPrice !== item.price && (
+                              <p className="font-body text-xs text-muted-foreground line-through">₹{(item.price * item.quantity).toLocaleString()}</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-body text-sm truncate">{item.name}</h4>
-                          <p className="font-body text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                          <p className="font-body text-sm text-gold">₹{(item.price * item.quantity).toLocaleString()}</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="space-y-3 py-6 border-b border-border">
                     <div className="flex justify-between font-body text-sm">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span>₹{totalPrice.toLocaleString()}</span>
+                      <span>₹{adjustedTotal.toLocaleString()}</span>
                     </div>
+                    {adjustedTotal !== totalPrice && (
+                      <div className="flex justify-between font-body text-xs">
+                        <span className="text-muted-foreground">Listed price</span>
+                        <span className="line-through text-muted-foreground">₹{totalPrice.toLocaleString()}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-body text-sm">
                       <span className="text-muted-foreground">Shipping</span>
                       <span className="text-green-600">Free</span>
@@ -338,7 +372,7 @@ const CheckoutPage = () => {
 
                   <div className="flex justify-between py-6">
                     <span className="font-display text-lg">Total</span>
-                    <span className="font-display text-2xl text-gold">₹{totalPrice.toLocaleString()}</span>
+                    <span className="font-display text-2xl text-gold">₹{adjustedTotal.toLocaleString()}</span>
                   </div>
 
                   <Button type="submit" size="lg" className="w-full" disabled={loading}>
