@@ -118,13 +118,22 @@ const AccountPage = () => {
 
   const checkAdmin = async (userId: string) => {
     try {
-      const { data: profile, error } = await (supabase as any)
+      const { data: roleData, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (error) return;
+      setIsAdmin(!!roleData);
+      
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('role, requested_admin')
+        .select('requested_admin')
         .eq('id', userId)
         .single();
-      if (error) return;
-      setIsAdmin(profile?.role === 'admin');
+      
       setRequestedAdmin(profile?.requested_admin ?? false);
     } catch (err) {
       console.warn('checkAdmin failed:', err);

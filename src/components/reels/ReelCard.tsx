@@ -33,7 +33,9 @@ interface ReelCardProps {
 
 export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(() => {
+    return localStorage.getItem('reels-muted') === 'true' || localStorage.getItem('reels-muted') === null;
+  });
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(reel.likes_count ?? 0);
   // ✅ KEY FIX: comment state is ONLY ever set by explicit button click
@@ -44,6 +46,24 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+
+  // Volume persistence sync
+  useEffect(() => {
+    localStorage.setItem('reels-muted', isMuted.toString());
+  }, [isMuted]);
+
+  // Handle global mute changes from other reels
+  useEffect(() => {
+    const handleMuteChange = () => {
+      const savedMute = localStorage.getItem('reels-muted') === 'true';
+      if (savedMute !== isMuted) {
+        setIsMuted(savedMute);
+        if (videoRef.current) videoRef.current.muted = savedMute;
+      }
+    };
+    window.addEventListener('storage', handleMuteChange);
+    return () => window.removeEventListener('storage', handleMuteChange);
+  }, [isMuted]);
 
   // Auth
   useEffect(() => {
@@ -186,7 +206,7 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
         {/* ——— MUTE BUTTON (top-right) ——— */}
         <button
           onClick={toggleMute}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+          className="absolute top-20 right-4 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors lg:top-4"
           aria-label={isMuted ? 'Unmute' : 'Mute'}
         >
           {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}

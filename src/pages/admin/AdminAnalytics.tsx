@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   LayoutDashboard,
   Package,
-  FileText,
+  ShoppingBag,
   Film,
   Headphones,
   ArrowLeft,
@@ -14,8 +14,11 @@ import {
   Users,
   Bot,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  ChevronLeft
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import React from 'react';
 import { FeedbackAnalytics } from "@/components/admin/FeedbackAnalytics";
 import { AgentPerformanceMetrics } from "@/components/admin/AgentPerformanceMetrics";
 import { ChatAnalyticsDashboard } from "@/components/admin/ChatAnalyticsDashboard";
@@ -57,8 +60,8 @@ const AdminAnalytics = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold" />
       </div>
     );
   }
@@ -66,100 +69,106 @@ const AdminAnalytics = () => {
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/admin" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <h1 className="font-display text-xl">Analytics Dashboard</h1>
-          </div>
+      <header className="bg-white border-b border-slate-200 h-16 px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm shrink-0">
+        <div className="flex items-center gap-4">
+          <Link to="/admin" className="text-slate-400 hover:text-charcoal transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="h-6 w-px bg-slate-200" />
+          <h1 className="font-display text-xl font-bold text-charcoal">Market Intelligence</h1>
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-64 bg-background border-r min-h-[calc(100vh-65px)] hidden lg:block">
-          <nav className="p-4 space-y-2">
-            <Link to="/admin" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="text-sm">Dashboard</span>
-            </Link>
-            <Link to="/admin/products" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors">
-              <Package className="h-4 w-4" />
-              <span className="text-sm">Products</span>
-            </Link>
-            <Link to="/admin/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors">
-              <FileText className="h-4 w-4" />
-              <span className="text-sm">Orders</span>
-            </Link>
-            <Link to="/admin/reels" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors">
-              <Film className="h-4 w-4" />
-              <span className="text-sm">Reels</span>
-            </Link>
-            <Link to="/admin/chat" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors">
-              <Headphones className="h-4 w-4" />
-              <span className="text-sm">Live Chat</span>
-            </Link>
-            <Link to="/admin/analytics" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary">
-              <BarChart3 className="h-4 w-4" />
-              <span className="text-sm">Analytics</span>
-            </Link>
+        <aside className="w-72 bg-white border-r border-slate-200 p-6 hidden lg:flex flex-col shrink-0">
+          <nav className="p-4 space-y-1">
+            <SidebarItem to="/admin" icon={<LayoutDashboard />} label="Dashboard" />
+            <SidebarItem to="/admin/products" icon={<Package />} label="Products" />
+            <SidebarItem to="/admin/orders" icon={<ShoppingBag />} label="Orders" />
+            <SidebarItem to="/admin/inquiries" icon={<MessageSquare />} label="Inquiries" />
+            <SidebarItem to="/admin/reels" icon={<Film />} label="Reels" />
+            <SidebarItem to="/admin/chat" icon={<Headphones />} label="Live Chat" />
+            <SidebarItem to="/admin/analytics" icon={<BarChart3 />} label="Analytics" active />
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
-                    <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-5">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                <span className="hidden sm:inline">Chat Stats</span>
-              </TabsTrigger>
+        <main className="flex-1 p-8 md:p-12 overflow-y-auto">
+          <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
+            <div className="flex items-end justify-between">
+               <h2 className="font-display text-4xl font-bold text-charcoal italic leading-none">Intelligence Panel</h2>
+               <div className="text-[10px] font-black uppercase tracking-widest text-slate-300">Synchronized Real-time Metrics</div>
+            </div>
 
-              <TabsTrigger value="feedback" className="flex items-center gap-2">
-                <Star className="h-4 w-4" />
-                <span className="hidden sm:inline">Feedback</span>
-              </TabsTrigger>
-              <TabsTrigger value="agents" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                                <span className="hidden sm:inline">Agents</span>
-              </TabsTrigger>
-              <TabsTrigger value="scheduling" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="hidden sm:inline">Scheduling</span>
-              </TabsTrigger>
-              <TabsTrigger value="autoresponses" className="flex items-center gap-2">
-                <Bot className="h-4 w-4" />
-                <span className="hidden sm:inline">Auto-Bot</span>
-              </TabsTrigger>
-            </TabsList>
+            <Tabs defaultValue="dashboard" className="space-y-10">
+              <TabsList className="bg-white border border-slate-100 p-1.5 rounded-2xl w-full max-w-2xl shadow-sm h-14">
+                <TabsTrigger value="dashboard" className="flex-1 rounded-xl data-[state=active]:bg-gold data-[state=active]:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Chat Stats
+                </TabsTrigger>
+                <TabsTrigger value="feedback" className="flex-1 rounded-xl data-[state=active]:bg-gold data-[state=active]:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <Star className="h-3.5 w-3.5" />
+                  Feedback
+                </TabsTrigger>
+                <TabsTrigger value="agents" className="flex-1 rounded-xl data-[state=active]:bg-gold data-[state=active]:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <Users className="h-3.5 w-3.5" />
+                  Agents
+                </TabsTrigger>
+                <TabsTrigger value="scheduling" className="flex-1 rounded-xl data-[state=active]:bg-gold data-[state=active]:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Schedule
+                </TabsTrigger>
+                <TabsTrigger value="autoresponses" className="flex-1 rounded-xl data-[state=active]:bg-gold data-[state=active]:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <Bot className="h-3.5 w-3.5" />
+                  Auto-Bot
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="dashboard">
-              <ChatAnalyticsDashboard />
-            </TabsContent>
+              <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm min-h-[600px]">
+                <TabsContent value="dashboard" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <ChatAnalyticsDashboard />
+                </TabsContent>
 
-            <TabsContent value="feedback">
-              <FeedbackAnalytics />
-            </TabsContent>
+                <TabsContent value="feedback" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <FeedbackAnalytics />
+                </TabsContent>
 
-            <TabsContent value="agents">
-              <AgentPerformanceMetrics />
-            </TabsContent>
+                <TabsContent value="agents" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <AgentPerformanceMetrics />
+                </TabsContent>
 
-            <TabsContent value="scheduling">
-              <AgentScheduling />
-            </TabsContent>
-            <TabsContent value="autoresponses">
-              <AutoResponsesManager />
-            </TabsContent>
-          </Tabs>
+                <TabsContent value="scheduling" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <AgentScheduling />
+                </TabsContent>
+                
+                <TabsContent value="autoresponses" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <AutoResponsesManager />
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
         </main>
       </div>
     </div>
   );
 };
+
+const SidebarItem = ({ to, icon, label, active = false }: { to: string, icon: any, label: string, active?: boolean }) => (
+  <Link
+    to={to}
+    className={cn(
+      "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group",
+      active 
+        ? "bg-gold/10 text-gold shadow-sm font-bold" 
+        : "text-slate-500 hover:bg-slate-50 hover:text-charcoal"
+    )}
+  >
+    {React.cloneElement(icon as React.ReactElement, { className: "w-4 h-4 flex-shrink-0" })}
+    <span className="font-body text-sm font-medium">{label}</span>
+  </Link>
+);
 
 export default AdminAnalytics;

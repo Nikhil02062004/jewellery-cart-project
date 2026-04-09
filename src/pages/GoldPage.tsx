@@ -14,7 +14,7 @@ const GoldPage = () => {
   const [sortBy, setSortBy] = useState<SortOption>('featured');
   const [genderFilter, setGenderFilter] = useState<ProductGender | 'all'>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string | null>(null);
-  
+
   const { products, loading, error } = useProducts('gold');
 
   // Calculate price range from products
@@ -101,7 +101,7 @@ const GoldPage = () => {
             <p className="font-body">
               <span className="text-gold font-medium">Gold items are for viewing only.</span>
               {' '}Interested in a piece? Call us at{' '}
-              <a href="tel:+916376538381" className="text-gold underline font-medium">+91 63765-38381</a>
+              <a href="tel:+916376538381" className="text-gold underline font-medium">+91 63773-65363</a>
               {' '}to inquire and place an order.
             </p>
           </div>
@@ -117,9 +117,9 @@ const GoldPage = () => {
           </div>
 
           {/* Subcategory Filter */}
-          <SubcategoryFilter 
-            subcategories={getSubcategories()} 
-            value={subcategoryFilter} 
+          <SubcategoryFilter
+            subcategories={getSubcategories()}
+            value={subcategoryFilter}
             onChange={setSubcategoryFilter}
             className="mb-8"
           />
@@ -166,7 +166,7 @@ const GoldPage = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                   {sortedProducts.map((product) => (
                     <Link key={product.id} to={`/product/${product.id}`}>
-                      <ProductCard 
+                      <ProductCard
                         product={{
                           id: product.id,
                           name: product.name,
@@ -179,7 +179,7 @@ const GoldPage = () => {
                           description: product.description || undefined,
                           base_metal_rate_per_gram: (product as any).base_metal_rate_per_gram ?? null,
                         }}
-                        viewOnly 
+                        viewOnly
                       />
                     </Link>
                   ))}
@@ -201,7 +201,7 @@ const GoldPage = () => {
             </div>
             <h2 className="font-display text-3xl mb-4">Why Choose Our Gold?</h2>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center p-8 bg-background rounded-lg">
               <Shield className="w-12 h-12 text-gold mx-auto mb-4" />
@@ -238,7 +238,7 @@ const GoldPage = () => {
           <Button asChild size="lg" variant="gold">
             <a href="tel:+1234567890">
               <Phone className="w-5 h-5" />
-              Call Now: +91 63765-38381
+              Call Now: +91 63773-65363
             </a>
           </Button>
         </div>
