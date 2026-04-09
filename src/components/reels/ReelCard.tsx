@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Play, Volume2, VolumeX, ShoppingBag } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Play, Volume2, VolumeX, ShoppingBag, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ReelComments } from './ReelComments';
@@ -193,122 +193,125 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
         </button>
 
         {/* ——— RIGHT SIDE ACTION BUTTONS ——— */}
-        <div className="absolute right-3 bottom-32 z-10 flex flex-col items-center gap-5">
+        <div className="absolute right-4 bottom-24 z-10 flex flex-col items-center gap-6">
+
+          {/* User Profile - Standard IG feature */}
+          <div className="flex flex-col items-center mb-2">
+            <div className="w-11 h-11 rounded-full border-2 border-gold p-0.5 bg-background overflow-hidden shadow-gold">
+              <div className="w-full h-full rounded-full bg-charcoal flex items-center justify-center text-gold text-xs font-bold">
+                {user?.user_metadata?.name?.charAt(0) || <User className="w-5 h-5" />}
+              </div>
+            </div>
+            <div className="bg-gold rounded-full px-1.5 py-0.5 -mt-2.5 z-10">
+              <span className="text-[10px] font-bold text-charcoal">+</span>
+            </div>
+          </div>
 
           {/* Like */}
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={handleLike}
               className={cn(
-                'p-3 rounded-full bg-black/40 hover:bg-black/60 transition-all active:scale-90',
-                isLiked ? 'text-red-500' : 'text-white'
+                'group flex items-center justify-center w-12 h-12 rounded-full glass-card transition-all active:scale-75',
+                isLiked ? 'text-red-500 bg-red-500/10 border-red-500/20' : 'text-white'
               )}
               aria-label="Like"
             >
-              <Heart className={cn('w-6 h-6', isLiked && 'fill-current')} />
+              <Heart className={cn('w-6 h-6 transition-transform group-hover:scale-110', isLiked && 'fill-current')} />
             </button>
-            <span className="text-white text-xs font-semibold drop-shadow">{likesCount}</span>
+            <span className="text-white text-[11px] font-medium drop-shadow-md tracking-wider">
+              {likesCount > 999 ? `${(likesCount/1000).toFixed(1)}k` : likesCount}
+            </span>
           </div>
 
-          {/* Comment — THE ONLY trigger for comments */}
+          {/* Comment */}
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={openComments}
-              className="p-3 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all active:scale-90"
+              className="group flex items-center justify-center w-12 h-12 rounded-full glass-card text-white transition-all active:scale-75"
               aria-label="Comments"
             >
-              <MessageCircle className="w-6 h-6" />
+              <MessageCircle className="w-6 h-6 transition-transform group-hover:scale-110" />
             </button>
-            <span className="text-white text-xs font-semibold drop-shadow">Comment</span>
+            <span className="text-white text-[11px] font-medium drop-shadow-md tracking-wider">Chat</span>
           </div>
 
           {/* Share */}
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={handleShare}
-              className="p-3 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all active:scale-90"
+              className="group flex items-center justify-center w-12 h-12 rounded-full glass-card text-white transition-all active:scale-75"
               aria-label="Share"
             >
-              <Share2 className="w-6 h-6" />
+              <Share2 className="w-5 h-5 transition-transform group-hover:scale-110" />
             </button>
-            <span className="text-white text-xs font-semibold drop-shadow">Share</span>
+            <span className="text-white text-[11px] font-medium drop-shadow-md tracking-wider">Send</span>
           </div>
         </div>
 
         {/* ——— BOTTOM INFO (caption + product) ——— */}
-        <div className="absolute bottom-4 left-3 right-16 z-10 pointer-events-none">
+        <div className="absolute bottom-8 left-4 right-20 z-10 space-y-4 pointer-events-none">
+          {/* User & Timestamp */}
+          <div className="flex items-center gap-3 pointer-events-auto">
+            <span className="text-white font-bold text-base tracking-tight drop-shadow-lg">
+              @{user?.user_metadata?.name?.toLowerCase().replace(/\s+/g, '') || 'jewelry_lover'}
+            </span>
+            <span className="text-white/60 text-xs font-medium drop-shadow-md">• {formatDistanceToNow(new Date(reel.created_at), { addSuffix: true }).replace('about ', '')}</span>
+          </div>
+
           {/* Caption */}
           {reel.caption && (
-            <p className="text-white text-sm mb-3 line-clamp-2 drop-shadow-lg">
+            <p className="text-white/90 text-[13px] leading-relaxed line-clamp-2 drop-shadow-md pr-4 pointer-events-auto max-w-[90%]">
               {reel.caption}
             </p>
           )}
 
-          {/* Product card */}
+          {/* Product card - More premium */}
           {reel.product && (
             <Link
               to={`/product/${reel.product.id}`}
               onClick={e => e.stopPropagation()}
-              className="pointer-events-auto flex items-center gap-3 bg-black/60 backdrop-blur-md border border-gold/30 rounded-xl p-2.5 hover:bg-black/80 transition-colors group"
+              className="pointer-events-auto flex items-center gap-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 hover:bg-white/20 transition-all group scale-100 hover:scale-[1.02] shadow-2xl overflow-hidden relative"
             >
-              <img
-                src={reel.product.image}
-                alt={reel.product.name}
-                className="w-11 h-11 object-cover rounded-lg border border-gold/20 flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-medium text-sm truncate">{reel.product.name}</p>
-                <p className="text-gold font-semibold text-sm">₹{reel.product.price.toLocaleString()}</p>
+              <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative w-12 h-12 flex-shrink-0">
+                <img
+                  src={reel.product.image}
+                  alt={reel.product.name}
+                  className="w-full h-full object-cover rounded-xl border border-white/10 shadow-lg"
+                />
               </div>
-              <div className="flex-shrink-0 p-1.5 rounded-lg bg-gold/20 group-hover:bg-gold/40 transition-colors">
-                <ShoppingBag className="w-4 h-4 text-gold" />
+              <div className="flex-1 min-w-0 relative">
+                <p className="text-white font-bold text-xs truncate tracking-wide uppercase">{reel.product.name}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-gold font-black text-sm">₹{reel.product.price.toLocaleString()}</p>
+                  <span className="text-[10px] text-white/40 line-through">₹{(reel.product.price * 1.2).toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="relative flex-shrink-0 w-10 h-10 rounded-full bg-gold flex items-center justify-center shadow-gold transition-transform group-hover:rotate-[360deg] duration-700">
+                <ShoppingBag className="w-5 h-5 text-charcoal" />
               </div>
             </Link>
           )}
         </div>
 
-        {/* ——— GRADIENT OVERLAY (bottom fade for readability) ——— */}
+        {/* ——— GRADIENT OVERLAY ——— */}
         <div
-          className="absolute bottom-0 left-0 right-0 h-56 pointer-events-none z-0"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)' }}
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 30%, transparent 60%, rgba(0,0,0,0.4) 100%)' }}
           aria-hidden="true"
         />
 
-        {/* ——— PROGRESS BAR & INFO ——— */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col pointer-events-none">
-          {/* Metadata Overlay (Caption, Timestamp) */}
-          <div className="px-3 pb-4 pointer-events-auto w-[85%]">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-white font-semibold text-[15px] drop-shadow-md">
-                {/* Normally Username goes here; we'll show timestamp for now to match IG */}
-                @{user?.user_metadata?.name || 'user'}
-              </span>
-              <span className="text-white/80 text-xs font-medium drop-shadow">
-                • {formatDistanceToNow(new Date(reel.created_at), { addSuffix: true }).replace('about ', '')}
-              </span>
-            </div>
-          </div>
-
-          {/* Progress Bar & Timer */}
-          <div className="flex items-center gap-2 px-3 pb-2 w-full">
-            <span className="text-[10px] text-white/80 font-medium drop-shadow w-7 text-right">
-              {formatTime(currentTime)}
-            </span>
-            <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden flex items-center backdrop-blur-sm">
-              <div 
-                className="h-full bg-white transition-all duration-100 ease-linear rounded-full"
-                style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-              />
-            </div>
-            <span className="text-[10px] text-white/80 font-medium drop-shadow w-7">
-              {formatTime(duration)}
-            </span>
-          </div>
+        {/* ——— PROGRESS BAR (Minimalist) ——— */}
+        <div className="absolute bottom-0 left-0 right-0 z-30 h-1 bg-white/10 overflow-hidden">
+          <div 
+            className="h-full bg-gold transition-all duration-100 ease-linear shadow-gold"
+            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          />
         </div>
       </div>
 
-      {/* ——— COMMENT DRAWER (rendered as portal-like fixed overlay) ——— */}
-      {/* ✅ Only visible when showComments=true, which is ONLY set by openComments() */}
+      {/* ——— COMMENT DRAWER ——— */}
       <ReelComments
         reelId={reel.id}
         isOpen={showComments}

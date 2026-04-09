@@ -163,7 +163,7 @@ const GoldPage = () => {
                   <p className="text-muted-foreground">No products found in this category.</p>
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                   {sortedProducts.map((product) => (
                     <Link key={product.id} to={`/product/${product.id}`}>
                       <ProductCard 

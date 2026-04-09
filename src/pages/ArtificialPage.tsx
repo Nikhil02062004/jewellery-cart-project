@@ -220,8 +220,8 @@ const ArtificialPage = () => {
                 </div>
               ) : (
                 <div className={cn(
-                  "grid gap-8",
-                  view === 'grid' ? "sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-2"
+                  "grid gap-4 md:gap-8",
+                  view === 'grid' ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1"
                 )}>
                   {sortedProducts.map((product) => (
                     <Link key={product.id} to={`/product/${product.id}`}>

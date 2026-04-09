@@ -78,126 +78,109 @@ export const ProductCard = ({ product, viewOnly = false }: ProductCardProps) => 
 
   return (
     <div 
-      className="group bg-card rounded-lg overflow-hidden hover-lift"
+      className="group bg-white rounded-2xl overflow-hidden border border-gray-100/50 shadow-soft hover:shadow-xl transition-all duration-500 flex flex-col h-full"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
-      <div className="relative aspect-square bg-muted overflow-hidden">
-        {product.isNew && (
-          <div className="absolute top-4 left-0 z-10">
-            <span className="bg-charcoal text-primary-foreground font-body text-xs uppercase tracking-wider px-3 py-2">
-              New
-            </span>
-          </div>
-        )}
-        
-        {product.originalPrice && (
-          <div className="absolute top-4 right-4 z-10">
-            <span className="bg-destructive text-destructive-foreground font-body text-xs uppercase tracking-wider px-2 py-1 rounded">
-              Sale
-            </span>
-          </div>
-        )}
-
-        <img 
-          src={product.image} 
-          alt={product.name}
-          className={cn(
-            "w-full h-full object-cover transition-transform duration-500",
-            isHovered && "scale-110"
+      <div className="relative aspect-[4/5] overflow-hidden bg-gray-50">
+        {/* Badges */}
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+          {product.isNew && (
+            <div className="px-3 py-1.5 rounded-full glass-card border-white/40 bg-charcoal/10 backdrop-blur-md">
+              <span className="text-[10px] font-black uppercase tracking-widest text-charcoal">New Arrival</span>
+            </div>
           )}
-        />
+          {product.originalPrice && (
+            <div className="px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 backdrop-blur-md">
+              <span className="text-[10px] font-black uppercase tracking-widest text-red-600">
+                -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {/* Wishlist Toggle - Persistent on mobile, Hover on desktop? Actually better persistent for reachability */}
+        <button 
+          onClick={handleToggleWishlist}
+          className={cn(
+            "absolute top-3 right-3 z-10 w-10 h-10 rounded-full glass-card border-white/40 flex items-center justify-center transition-all active:scale-75",
+            isLiked ? "bg-red-500/10 text-red-500" : "bg-white/40 text-charcoal/60 hover:bg-white/60"
+          )}
+        >
+          <Heart className={cn("w-5 h-5 transition-transform", isLiked && "fill-current scale-110")} />
+        </button>
 
-        {/* Hover Actions */}
+        <Link to={`/product/${product.id}`} className="block w-full h-full">
+          <img 
+            src={product.image} 
+            alt={product.name}
+            className={cn(
+              "w-full h-full object-cover transition-transform duration-700 ease-out",
+              isHovered ? "scale-110" : "scale-100"
+            )}
+          />
+        </Link>
+
+        {/* Desktop Quick Actions Overlay */}
         <div className={cn(
-          "absolute inset-0 bg-charcoal/40 flex items-center justify-center gap-3 transition-opacity duration-300",
-          isHovered ? "opacity-100" : "opacity-0"
+          "absolute inset-0 bg-charcoal/30 backdrop-blur-[2px] hidden md:flex items-center justify-center gap-4 transition-opacity duration-300",
+          isHovered ? "opacity-100" : "opacity-0 invisible"
         )}>
           <button 
-            onClick={handleToggleWishlist}
-            className={cn(
-              "w-11 h-11 rounded-full bg-background flex items-center justify-center transition-colors",
-              isLiked ? "text-destructive" : "text-foreground hover:text-gold"
-            )}
-            title={isLiked ? "Remove from Wishlist" : "Add to Wishlist"}
+            onClick={handleToggleCompare}
+            className="w-12 h-12 rounded-full bg-white text-charcoal hover:bg-gold hover:text-charcoal transition-all shadow-xl flex items-center justify-center translate-y-4 group-hover:translate-y-0 duration-300 delay-75"
+            title="Compare"
           >
-            <Heart className={cn("w-5 h-5", isLiked && "fill-current")} />
+            <GitCompare className="w-5 h-5" />
           </button>
           <Link 
             to={`/product/${product.id}`}
-            className="w-11 h-11 rounded-full bg-background flex items-center justify-center text-foreground hover:text-gold transition-colors"
+            className="w-12 h-12 rounded-full bg-white text-charcoal hover:bg-gold hover:text-charcoal transition-all shadow-xl flex items-center justify-center translate-y-4 group-hover:translate-y-0 duration-300"
             title="View Details"
           >
             <Eye className="w-5 h-5" />
           </Link>
-          <button 
-            onClick={handleToggleCompare}
-            className={cn(
-              "w-11 h-11 rounded-full bg-background flex items-center justify-center transition-colors",
-              inCompare ? "text-gold" : "text-foreground hover:text-gold"
-            )}
-            title={inCompare ? "In Compare List" : "Add to Compare"}
-          >
-            <GitCompare className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-5">
-        {/* Rating */}
-        <div className="flex items-center gap-1 mb-2">
-          {[...Array(5)].map((_, i) => (
-            <Star 
-              key={i} 
-              className={cn(
-                "w-3.5 h-3.5",
-                i < product.rating ? "text-gold fill-gold" : "text-muted"
-              )} 
-            />
-          ))}
+      {/* Product Information */}
+      <div className="p-3 md:p-5 flex flex-col flex-1">
+        <div className="flex-1">
+          <p className="text-[10px] uppercase tracking-widest text-gold font-bold mb-1 opacity-80">{product.category}</p>
+          <h3 className="font-display text-sm md:text-lg font-bold text-charcoal mb-2 leading-tight line-clamp-2 md:line-clamp-1 group-hover:text-gold transition-colors">
+            {product.name}
+          </h3>
+          
+          <div className="flex items-center gap-2 mb-4">
+            <span className="font-display text-base md:text-xl font-black text-charcoal">
+              ₹{product.price.toLocaleString()}
+            </span>
+            {product.originalPrice && (
+              <span className="text-xs text-muted-foreground line-through opacity-50">
+                ₹{product.originalPrice.toLocaleString()}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Name */}
-        <h3 className="font-display text-lg font-medium mb-2 line-clamp-1">
-          {product.name}
-        </h3>
-
-        {/* Price */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="font-body text-lg text-gold">
-            ₹{product.price.toLocaleString()}
-          </span>
-          {product.originalPrice && (
-            <span className="font-body text-sm text-muted-foreground line-through">
-              ₹{product.originalPrice.toLocaleString()}
-            </span>
+        {/* Cart CTA */}
+        <div className="mt-auto pt-2">
+          {viewOnly ? (
+            <Button asChild variant="elegant" className="w-full h-11 md:h-12 rounded-xl text-xs uppercase tracking-widest font-black">
+              <Link to={`/product/${product.id}`}>Explore Art</Link>
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleAddToCart}
+              className="w-full h-11 md:h-12 rounded-xl text-xs uppercase tracking-widest font-black flex items-center justify-center gap-3 active:scale-95 transition-transform"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span className="hidden sm:inline">Add to Vault</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
           )}
         </div>
-
-        {/* Actions */}
-        {viewOnly ? (
-          <div className="space-y-2">
-            <Button variant="elegant" className="w-full" size="sm">
-              <Eye className="w-4 h-4" />
-              View Details
-            </Button>
-            <Button variant="outline" className="w-full" size="sm" onClick={handleCall}>
-              <Phone className="w-4 h-4" />
-              Inquire Now
-            </Button>
-          </div>
-        ) : (
-          <Button 
-            onClick={handleAddToCart}
-            className="w-full"
-            size="sm"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            Add to Cart
-          </Button>
-        )}
       </div>
     </div>
   );
